@@ -1,0 +1,43 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+site_name: Gluten
+
+repo_name: 'Fork on GitHub '
+repo_url: "https://github.com/apache/incubator-gluten.git"
+edit_uri: ""
+
+
+nav:
+- User Guide: User-Guide.md
+- Prerequisite: Prerequisite.md
+- Installation: Installation.md
+- InstallationNotes: InstallationNotes.md
+- Configuration: Configuration.md
+- SparkInstallation: SparkInstallation.md
+- ApacheArrowInstallation: ApacheArrowInstallation.md
+- OAP Installation Guide: OAP-Installation-Guide.md
+- OAP Developer Guide: OAP-Developer-Guide.md
+- Version Selector: "../"
+
+
+
+theme: readthedocs
+
+
+plugins:
+  - search
+  - mkdocs-versioning:
+      version: 1.2.0
+      exclude_from_nav: ["image", "js", "css", "fonts", "img"]
