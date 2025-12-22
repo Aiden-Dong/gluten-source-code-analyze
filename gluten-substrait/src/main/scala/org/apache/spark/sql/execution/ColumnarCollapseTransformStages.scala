@@ -113,45 +113,31 @@ case class InputIteratorTransformer(child: SparkPlan) extends UnaryTransformSupp
  * 这个ID用于帮助区分不同的transform阶段。它作为物理计划explain输出的一部分，例如：
  *
  * ==Physical Plan==
- * *(5) SortMergeJoin [x#3L], [y#9L], Inner
- * :- *(2) Sort [x#3L ASC NULLS FIRST], false, 0
- * : +- Exchange hashpartitioning(x#3L, 200)
- *   : +- *(1) Project [(id#0L % 2) AS x#3L]
- *     : +- *(1) Filter isnotnull((id#0L % 2))
- *       : +- *(1) Range (0, 5, step=1, splits=8)
- * +- *(4) Sort [y#9L ASC NULLS FIRST], false, 0
- *   +- Exchange hashpartitioning(y#9L, 200)
- *    +- *(3) Project [(id#6L % 2) AS y#9L]
- *     +- *(3) Filter isnotnull((id#6L % 2))
- *       +- *(3) Range (0, 5, step=1, splits=8)
+ * *(5) SortMergeJoin [x#3L], [y#9L], Inner :- *(2) Sort [x#3L ASC NULLS FIRST], false, 0 : +-
+ * Exchange hashpartitioning(x#3L, 200) : +- *(1) Project [(id#0L % 2) AS x#3L] : +- *(1) Filter
+ * isnotnull((id#0L % 2)) : +- *(1) Range (0, 5, step=1, splits=8) +- *(4) Sort [y#9L ASC NULLS
+ * FIRST], false, 0 +- Exchange hashpartitioning(y#9L, 200) +- *(3) Project [(id#6L % 2) AS y#9L] +-
+ * *(3) Filter isnotnull((id#6L % 2)) +- *(3) Range (0, 5, step=1, splits=8)
  *
  * 其中ID清楚地表明，并非所有相邻的转换计划操作符都属于同一个transform阶段。
  *
- * transform阶段ID也可选地包含在生成类的名称中作为后缀，这样更容易将生成的类 关联回物理操作符。这由SQLConf控制：spark.sql.codegen.useIdInClassName
+ * transform阶段ID也可选地包含在生成类的名称中作为后缀，这样更容易将生成的类
+ * 关联回物理操作符。这由SQLConf控制：spark.sql.codegen.useIdInClassName
  *
  * ID也包含在各种日志消息中。
  *
- * 在查询中，计划中的transform阶段从1开始按"插入顺序"计数。
- * WholeStageTransformer操作符按深度优先后序插入到计划中。
+ * 在查询中，计划中的transform阶段从1开始按"插入顺序"计数。 WholeStageTransformer操作符按深度优先后序插入到计划中。
  * 插入顺序的定义请参见CollapseTransformStages.insertWholeStageTransform。
  *
- * 0被保留作为特殊ID值，表示创建了临时的WholeStageTransformer对象，
- * 例如，当现有WholeStageTransformer无法生成/编译代码时的特殊回退处理。
+ * 0被保留作为特殊ID值，表示创建了临时的WholeStageTransformer对象， 例如，当现有WholeStageTransformer无法生成/编译代码时的特殊回退处理。
  *
- * FilterExecTransformer (支持Transform)
- * └─ ProjectExecTransformer (支持Transform)
- *   └─ ShuffleExchangeExec (不支持Transform)
- *      └─ ScanTransformer (支持Transform)
+ * FilterExecTransformer (支持Transform) └─ ProjectExecTransformer (支持Transform) └─
+ * ShuffleExchangeExec (不支持Transform) └─ ScanTransformer (支持Transform)
  *
- * ---------------------------------------------
- * WholeStageTransformer(stageId=1)
- *   └─ FilterExecTransformer
- *      └─ ProjectExecTransformer
- *         └─ InputIteratorTransformer
- *            └─ ColumnarInputAdapter
- *               └─ ShuffleExchangeExec
- *                  └─ WholeStageTransformer(stageId=2)
- *                     └─ ScanTransformer
+ * --------------------------------------------- WholeStageTransformer(stageId=1) └─
+ * FilterExecTransformer └─ ProjectExecTransformer └─ InputIteratorTransformer └─
+ * ColumnarInputAdapter └─ ShuffleExchangeExec └─ WholeStageTransformer(stageId=2) └─
+ * ScanTransformer
  */
 case class ColumnarCollapseTransformStages(
     glutenConf: GlutenConfig,
@@ -192,8 +178,9 @@ case class ColumnarCollapseTransformStages(
     plan match {
       // 当前节点支持 Transform
       case t if supportTransform(t) =>
-        WholeStageTransformer(t.withNewChildren(t.children.map(insertInputIteratorTransformer)))(transformStageCounter.incrementAndGet())
-        // 该节点不支持 Transform
+        WholeStageTransformer(t.withNewChildren(t.children.map(insertInputIteratorTransformer)))(
+          transformStageCounter.incrementAndGet())
+      // 该节点不支持 Transform
       case other =>
         other.withNewChildren(other.children.map(insertWholeStageTransformer))
     }

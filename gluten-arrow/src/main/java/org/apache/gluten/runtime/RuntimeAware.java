@@ -16,9 +16,7 @@
  */
 package org.apache.gluten.runtime;
 
-/**
- * 这定义了可以传输到 C++ 端进行进一步本地处理的上下文对象的基础抽象。
- */
+/** 这定义了可以传输到 C++ 端进行进一步本地处理的上下文对象的基础抽象。 */
 public interface RuntimeAware {
   default boolean isCompatibleWith(RuntimeAware other) {
     return rtHandle() == other.rtHandle();

@@ -238,61 +238,61 @@ class VeloxIteratorApi extends IteratorApi with Logging {
 
   /** Generate Iterator[ColumnarBatch] for final stage. */
   override def genFinalStageIterator(
-      context: TaskContext,                                    // Spark任务上下文
-      inputIterators: Seq[Iterator[ColumnarBatch]],            // 上游数据迭代器
-      sparkConf: SparkConf,                                    // Spark 配置
-      rootNode: PlanNode,                                      // Substrait计划根节点
-      pipelineTime: SQLMetric,                                 // 管道执行时间指标
-      updateNativeMetrics: IMetrics => Unit,                   // 原生指标更新回调
-      partitionIndex: Int,                                     // 分区索引
-      materializeInput: Boolean,                               // 是否物化输入
-      enableCudf: Boolean = false                              // 是否启用CUDF(GPU)
-      ): Iterator[ColumnarBatch] = {
-
+      context: TaskContext, // Spark任务上下文
+      inputIterators: Seq[Iterator[ColumnarBatch]], // 上游数据迭代器
+      sparkConf: SparkConf, // Spark 配置
+      rootNode: PlanNode, // Substrait计划根节点
+      pipelineTime: SQLMetric, // 管道执行时间指标
+      updateNativeMetrics: IMetrics => Unit, // 原生指标更新回调
+      partitionIndex: Int, // 分区索引
+      materializeInput: Boolean, // 是否物化输入
+      enableCudf: Boolean = false // 是否启用CUDF(GPU)
+  ): Iterator[ColumnarBatch] = {
 
     // 创建额外配置Map，设置是否启用CUDF（GPU加速）
     val extraConf = Map(GlutenConfig.COLUMNAR_CUDF_ENABLED.key -> enableCudf.toString).asJava
 
     // 创建原生计划执行内核，负责执行Substrait计划  (JNI包装器，用于与Velox原生引擎通信)
-    val transKernel: NativePlanEvaluator = NativePlanEvaluator.create(BackendsApiManager.getBackendName,   // 后端名称 ("velox" 或 "clickhouse")
-      extraConf)   // 额外配置 (如 CUDF 启用状态)
-
+    val transKernel: NativePlanEvaluator = NativePlanEvaluator.create(
+      BackendsApiManager.getBackendName, // 后端名称 ("velox" 或 "clickhouse")
+      extraConf
+    ) // 额外配置 (如 CUDF 启用状态)
 
     // 将Spark的Iterator[ColumnarBatch]转换为原生引擎可识别的格式
     val columnarNativeIterator = inputIterators.map {
-        iter => new ColumnarBatchInIterator(BackendsApiManager.getBackendName, iter.asJava)
-      }
+      iter => new ColumnarBatchInIterator(BackendsApiManager.getBackendName, iter.asJava)
+    }
 
     // 为Velox引擎创建临时溢出目录, 当内存不足时，Velox将中间结果溢出到磁盘
-    val spillDirPath = SparkDirectoryUtil.get()
+    val spillDirPath = SparkDirectoryUtil
+      .get()
       .namespace("gluten-spill")
       .mkChildDirRoundRobin(UUID.randomUUID.toString)
       .getAbsolutePath
 
     // 创建原生结果迭代器
     val nativeResultIterator = transKernel.createKernelWithBatchIterator(
-        rootNode.toProtobuf.toByteArray,            // Substrait计划的二进制数据
-        // Final iterator does not contain scan split, so pass empty split info to native here.
-        new Array[Array[Byte]](0),                  // 空的分割信息（最终阶段不包含扫描）
-        columnarNativeIterator.asJava,              // 输入迭代器
-        partitionIndex,                             // 分区索引
-        BackendsApiManager.getSparkPlanExecApiInstance.rewriteSpillPath(spillDirPath)   // 溢出路径
-      )
-
+      rootNode.toProtobuf.toByteArray, // Substrait计划的二进制数据
+      // Final iterator does not contain scan split, so pass empty split info to native here.
+      new Array[Array[Byte]](0), // 空的分割信息（最终阶段不包含扫描）
+      columnarNativeIterator.asJava, // 输入迭代器
+      partitionIndex, // 分区索引
+      BackendsApiManager.getSparkPlanExecApiInstance.rewriteSpillPath(spillDirPath) // 溢出路径
+    )
 
     // 创建JNI指标收集器
     val itrMetrics = IteratorMetricsJniWrapper.create()
 
     // 包装和保护迭代器
     Iterators
-      .wrap(nativeResultIterator.asScala)    // 包装原生迭代器
-      .protectInvocationFlow()               // 保护调用流程
-      .recycleIterator {                     // 迭代器回收逻辑
-        updateNativeMetrics(itrMetrics.fetch(nativeResultIterator))    // 更新指标
-        nativeResultIterator.close()                                   // 关闭原生迭代器
+      .wrap(nativeResultIterator.asScala) // 包装原生迭代器
+      .protectInvocationFlow() // 保护调用流程
+      .recycleIterator { // 迭代器回收逻辑
+        updateNativeMetrics(itrMetrics.fetch(nativeResultIterator)) // 更新指标
+        nativeResultIterator.close() // 关闭原生迭代器
       }
-      .recyclePayload(batch => batch.close())               // 回收ColumnarBatch
-      .collectLifeMillis(millis => pipelineTime += millis)  // 收集执行时间
+      .recyclePayload(batch => batch.close()) // 回收ColumnarBatch
+      .collectLifeMillis(millis => pipelineTime += millis) // 收集执行时间
       .create()
   }
   // scalastyle:on argcount

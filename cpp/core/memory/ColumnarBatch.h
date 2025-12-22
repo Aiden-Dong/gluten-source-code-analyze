@@ -28,27 +28,39 @@
 
 namespace gluten {
 
+/***
+ * • **数据载体**：在 JVM 和 Native 引擎之间传递列式数据
+ * • **格式桥接**：连接 Spark 的 ColumnarBatch 和 Arrow 数据格式
+ * • **内存管理**：与 Gluten 内存管理系统集成
+ * • **性能优化**：避免行列转换，保持列式处理优势
+ */
 class ColumnarBatch {
  public:
   ColumnarBatch(int32_t numColumns, int32_t numRows);
 
   virtual ~ColumnarBatch() = default;
 
+  // 返回批次中的列数
   int32_t numColumns() const;
 
+  // 返回批次中的行数
   int32_t numRows() const;
 
+  // 返回批次类型标识
   virtual std::string getType() const = 0;
 
+  // 计算批次占用的内存字节数
   virtual int64_t numBytes() = 0;
 
+  // 导出为 Arrow C 数据接口的 ArrowArray 结构
   virtual std::shared_ptr<ArrowArray> exportArrowArray() = 0;
 
+  // 导出为 Arrow C 数据接口的 ArrowSchema 结构
   virtual std::shared_ptr<ArrowSchema> exportArrowSchema() = 0;
 
   virtual int64_t getExportNanos() const;
 
-  // Serializes one single row to byte array that can be accessed as Spark-compatible unsafe row.
+  // 将指定行转换为 Spark UnsafeRow 格式的字节数组
   virtual std::vector<char> toUnsafeRow(int32_t rowId) const;
 
   friend std::ostream& operator<<(std::ostream& os, const ColumnarBatch& columnarBatch);
@@ -63,22 +75,21 @@ class ColumnarBatch {
 
 class ArrowColumnarBatch final : public ColumnarBatch {
  public:
-  explicit ArrowColumnarBatch(std::shared_ptr<arrow::RecordBatch> batch);
+  // 接收 Arrow RecordBatch 并构造 ArrowColumnarBatch
+  explicit ArrowColumnarBatch(std::shared_ptr<arrow::RecordBatch> batch);   // explicit 防止别隐式转换构造
 
-  std::string getType() const override;
+  std::string getType() const override;     //  batch 类型标识
 
   int64_t numBytes() override;
 
-  arrow::RecordBatch* getRecordBatch() const;
-
-  std::shared_ptr<ArrowSchema> exportArrowSchema() override;
-
-  std::shared_ptr<ArrowArray> exportArrowArray() override;
+  arrow::RecordBatch* getRecordBatch() const;                    // 返回底层 Arrow RecordBatch 的原始指针
+  std::shared_ptr<ArrowSchema> exportArrowSchema() override;     // 将 Arrow Schema 导出为 C 数据接口格式
+  std::shared_ptr<ArrowArray> exportArrowArray() override;       //  将 RecordBatch 数据导出为 C 数据接口格式
 
   std::vector<char> toUnsafeRow(int32_t rowId) const override;
 
  private:
-  std::shared_ptr<arrow::RecordBatch> batch_;
+  std::shared_ptr<arrow::RecordBatch> batch_;                       // 存储底层的 Arrow RecordBatch 数据
 };
 
 class ArrowCStructColumnarBatch final : public ColumnarBatch {

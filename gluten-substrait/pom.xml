@@ -31,6 +31,8 @@
     <build.testJarPhase>none</build.testJarPhase>
     <build.copyDependenciesPhase>package</build.copyDependenciesPhase>
     <jars.target.dir>${project.build.directory}/scala-${scala.binary.version}/jars</jars.target.dir>
+    <backend.type>velox</backend.type>
+    <backend.home>${project.basedir}/../ep/build-velox/build/velox_ep</backend.home>
   </properties>
 
   <dependencies>
@@ -313,21 +315,4 @@
     <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
     <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>
   </build>
-
-  <profiles>
-    <profile>
-      <id>backends-velox</id>
-      <properties>
-        <backend.type>velox</backend.type>
-        <backend.home>${project.basedir}/../ep/build-velox/build/velox_ep</backend.home>
-      </properties>
-    </profile>
-    <profile>
-      <id>backends-clickhouse</id>
-      <properties>
-        <backend.type>ch</backend.type>
-        <backend.home>${project.basedir}/../cpp-ch/ClickHouse</backend.home>
-      </properties>
-    </profile>
-  </profiles>
 </project>

@@ -164,12 +164,12 @@ abstract class FilterExecTransformerBase(val cond: Expression, val input: SparkP
 }
 
 abstract class ProjectExecTransformerBase(
-   val list: Seq[NamedExpression],  // 投影表达式列表
-   val input: SparkPlan)            // 子节点
-  extends UnaryTransformSupport           // 一元转换支持
-  with OrderPreservingNodeShim            // 排序保持
-  with PartitioningPreservingNodeShim     // 分区保持
-  with PredicateHelper                    // 谓词辅助
+    val list: Seq[NamedExpression], // 投影表达式列表
+    val input: SparkPlan) // 子节点
+  extends UnaryTransformSupport // 一元转换支持
+  with OrderPreservingNodeShim // 排序保持
+  with PartitioningPreservingNodeShim // 分区保持
+  with PredicateHelper // 谓词辅助
   with Logging {
 
   // 指标收集

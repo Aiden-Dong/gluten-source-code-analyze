@@ -313,8 +313,10 @@ JNIEXPORT jlong JNICALL Java_org_apache_gluten_runtime_RuntimeJniWrapper_createR
     jlong nmmHandle,
     jbyteArray sessionConf) {
   JNI_METHOD_START
+  //  获取内存管理器
   MemoryManager* memoryManager = jniCastOrThrow<MemoryManager>(nmmHandle);
   auto safeArray = getByteArrayElementsSafe(env, sessionConf);
+  // 获取 spark 配置
   auto sparkConf = parseConfMap(env, safeArray.elems(), safeArray.length());
   auto backendType = jStringToCString(env, jBackendType);
 

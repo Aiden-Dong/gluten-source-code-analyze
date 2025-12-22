@@ -33,11 +33,9 @@ import org.apache.spark.sql.execution.SparkPlan
  *   - rowType0
  *   - requiredChildConvention (可选)
  *
- * 通过提供这些 API 的实现，Gluten 查询规划器将能够找到并插入
- * 不同计划节点之间的适当转换。
+ * 通过提供这些 API 的实现，Gluten 查询规划器将能够找到并插入 不同计划节点之间的适当转换。
  *
- * 实现 `requiredChildConvention` 是可选的，默认实现是一个约定要求序列，
- * 与输出约定完全相同。如果某些计划类型不是这种情况，则应重写该 API。
+ * 实现 `requiredChildConvention` 是可选的，默认实现是一个约定要求序列， 与输出约定完全相同。如果某些计划类型不是这种情况，则应重写该 API。
  * 例如，典型的行到列转换同时是一个查询计划节点，它需要行输入但产生列输出。
  */
 trait GlutenPlan

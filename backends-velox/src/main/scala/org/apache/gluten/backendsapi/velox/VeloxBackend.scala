@@ -58,8 +58,8 @@ class VeloxBackend extends SubstraitBackend {
 
   override def name(): String = VeloxBackend.BACKEND_NAME
 
-  override def buildInfo(): BuildInfo = BuildInfo("Velox", VELOX_BRANCH, VELOX_REVISION, VELOX_REVISION_TIME)
-
+  override def buildInfo(): BuildInfo =
+    BuildInfo("Velox", VELOX_BRANCH, VELOX_REVISION, VELOX_REVISION_TIME)
 
   override def iteratorApi(): IteratorApi = new VeloxIteratorApi
   override def sparkPlanExecApi(): SparkPlanExecApi = new VeloxSparkPlanExecApi

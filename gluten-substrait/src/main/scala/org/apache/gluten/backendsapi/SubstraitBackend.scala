@@ -81,15 +81,14 @@ trait SubstraitBackend extends Backend with Logging {
     }
   }
 
-
-  def iteratorApi(): IteratorApi                // 数据迭代器API
-  def sparkPlanExecApi(): SparkPlanExecApi      // 执行计划API
-  def transformerApi(): TransformerApi          // 操作符转换API
-  def validatorApi(): ValidatorApi              // 支持性验证API
-  def metricsApi(): MetricsApi                  // 性能指标API
-  def listenerApi(): ListenerApi                // 事件监听API
-  def ruleApi(): RuleApi                        // 优化规则API
-  def settings(): BackendSettingsApi            // 后端设置API
+  def iteratorApi(): IteratorApi // 数据迭代器API
+  def sparkPlanExecApi(): SparkPlanExecApi // 执行计划API
+  def transformerApi(): TransformerApi // 操作符转换API
+  def validatorApi(): ValidatorApi // 支持性验证API
+  def metricsApi(): MetricsApi // 性能指标API
+  def listenerApi(): ListenerApi // 事件监听API
+  def ruleApi(): RuleApi // 优化规则API
+  def settings(): BackendSettingsApi // 后端设置API
 }
 
 object SubstraitBackend extends Logging {

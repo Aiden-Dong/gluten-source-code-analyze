@@ -109,33 +109,33 @@ set(PROTO_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/proto)
 
 # List Substrait Proto compiled files
-#file(GLOB SUBSTRAIT_PROTO_FILES ${SUBSTRAIT_PROTO_SRC_DIR}/substrait/*.proto
-#     ${SUBSTRAIT_PROTO_SRC_DIR}/substrait/extensions/*.proto)
-#foreach(PROTO ${SUBSTRAIT_PROTO_FILES})
-#  file(RELATIVE_PATH REL_PROTO ${SUBSTRAIT_PROTO_SRC_DIR} ${PROTO})
-#  string(REGEX REPLACE "\\.proto" "" PROTO_NAME ${REL_PROTO})
-#  list(APPEND SUBSTRAIT_PROTO_SRCS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.cc")
-#  list(APPEND SUBSTRAIT_PROTO_HDRS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.h")
-#endforeach()
-#set(SUBSTRAIT_PROTO_OUTPUT_FILES ${SUBSTRAIT_PROTO_HDRS}
-#                                 ${SUBSTRAIT_PROTO_SRCS})
-#set_source_files_properties(${SUBSTRAIT_PROTO_OUTPUT_FILES} PROPERTIES GENERATED
-#                                                                       TRUE)
-#get_filename_component(SUBSTRAIT_PROTO_DIR ${SUBSTRAIT_PROTO_SRC_DIR}/
-#                       DIRECTORY)
+file(GLOB SUBSTRAIT_PROTO_FILES ${SUBSTRAIT_PROTO_SRC_DIR}/substrait/*.proto
+     ${SUBSTRAIT_PROTO_SRC_DIR}/substrait/extensions/*.proto)
+foreach(PROTO ${SUBSTRAIT_PROTO_FILES})
+  file(RELATIVE_PATH REL_PROTO ${SUBSTRAIT_PROTO_SRC_DIR} ${PROTO})
+  string(REGEX REPLACE "\\.proto" "" PROTO_NAME ${REL_PROTO})
+  list(APPEND SUBSTRAIT_PROTO_SRCS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.cc")
+  list(APPEND SUBSTRAIT_PROTO_HDRS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.h")
+endforeach()
+set(SUBSTRAIT_PROTO_OUTPUT_FILES ${SUBSTRAIT_PROTO_HDRS}
+                                 ${SUBSTRAIT_PROTO_SRCS})
+set_source_files_properties(${SUBSTRAIT_PROTO_OUTPUT_FILES} PROPERTIES GENERATED
+                                                                       TRUE)
+get_filename_component(SUBSTRAIT_PROTO_DIR ${SUBSTRAIT_PROTO_SRC_DIR}/
+                       DIRECTORY)
 
 ## List Gluten Proto compiled files
-#file(GLOB GLUTEN_PROTO_FILES ${GLUTEN_PROTO_SRC_DIR}/*.proto)
-#foreach(PROTO ${GLUTEN_PROTO_FILES})
-#  file(RELATIVE_PATH REL_PROTO ${GLUTEN_PROTO_SRC_DIR} ${PROTO})
-#  string(REGEX REPLACE "\\.proto" "" PROTO_NAME ${REL_PROTO})
-#  list(APPEND GLUTEN_PROTO_SRCS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.cc")
-#  list(APPEND GLUTEN_PROTO_HDRS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.h")
-#endforeach()
-#set(GLUTEN_PROTO_OUTPUT_FILES ${GLUTEN_PROTO_HDRS} ${GLUTEN_PROTO_SRCS})
-#set_source_files_properties(${GLUTEN_PROTO_OUTPUT_FILES} PROPERTIES GENERATED
-#                                                                    TRUE)
-#get_filename_component(GLUTEN_PROTO_DIR ${GLUTEN_PROTO_SRC_DIR}/ DIRECTORY)
+file(GLOB GLUTEN_PROTO_FILES ${GLUTEN_PROTO_SRC_DIR}/*.proto)
+foreach(PROTO ${GLUTEN_PROTO_FILES})
+  file(RELATIVE_PATH REL_PROTO ${GLUTEN_PROTO_SRC_DIR} ${PROTO})
+  string(REGEX REPLACE "\\.proto" "" PROTO_NAME ${REL_PROTO})
+  list(APPEND GLUTEN_PROTO_SRCS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.cc")
+  list(APPEND GLUTEN_PROTO_HDRS "${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.h")
+endforeach()
+set(GLUTEN_PROTO_OUTPUT_FILES ${GLUTEN_PROTO_HDRS} ${GLUTEN_PROTO_SRCS})
+set_source_files_properties(${GLUTEN_PROTO_OUTPUT_FILES} PROPERTIES GENERATED
+                                                                    TRUE)
+get_filename_component(GLUTEN_PROTO_DIR ${GLUTEN_PROTO_SRC_DIR}/ DIRECTORY)
 
 set(SPARK_COLUMNAR_PLUGIN_SRCS
     ${SUBSTRAIT_PROTO_SRCS}

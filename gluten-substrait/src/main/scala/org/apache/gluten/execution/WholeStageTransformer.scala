@@ -242,7 +242,7 @@ case class WholeStageTransformer(child: SparkPlan, materializeInput: Boolean = f
     val substraitContext = new SubstraitContext
 
     // 对子节点执行transform操作，将Spark物理计划转换为Substrait表示
-    val childCtx:TransformContext = child
+    val childCtx: TransformContext = child
       .asInstanceOf[TransformSupport]
       .transform(substraitContext)
 
@@ -352,9 +352,9 @@ case class WholeStageTransformer(child: SparkPlan, materializeInput: Boolean = f
 
     // 通过后端API生成输入分区，这是与具体后端（Velox/ClickHouse）交互的关键点
     val inputPartitions = BackendsApiManager.getIteratorApiInstance.genPartitions(
-        wsCtx,
-        allSplitInfos,
-        leafTransformers)
+      wsCtx,
+      allSplitInfos,
+      leafTransformers)
 
     val rdd = new GlutenWholeStageColumnarRDD(
       sparkContext,
@@ -394,8 +394,10 @@ case class WholeStageTransformer(child: SparkPlan, materializeInput: Boolean = f
     val wsCtx = GlutenTimeMetric.withMillisTime {
       doWholeStageTransform()
     }(
-      t => logOnLevel(GlutenConfig.get.substraitPlanLogLevel, s"$nodeName generating the substrait plan took: $t ms.")
-    )
+      t =>
+        logOnLevel(
+          GlutenConfig.get.substraitPlanLogLevel,
+          s"$nodeName generating the substrait plan took: $t ms."))
 
     // 包装输入RDD，为列式数据处理做准备
     //                - 如果上游是 TransformSupport 则找到 TransformSupport 上面的根节点
@@ -411,8 +413,8 @@ case class WholeStageTransformer(child: SparkPlan, materializeInput: Boolean = f
     } else {
 
       /**
-       * 如果没有叶子节点（如ClickHouse后端的扫描或简单DataFrame），创建压缩分区RDD来处理已有的输入数据
-       * the whole stage contains NO [[LeafTransformSupport]]. This is the default case for:
+       * 如果没有叶子节点（如ClickHouse后端的扫描或简单DataFrame），创建压缩分区RDD来处理已有的输入数据 the whole stage contains NO
+       * [[LeafTransformSupport]]. This is the default case for:
        *   - SCAN of clickhouse backend. See
        *     BackendsApiManager.getSettings.excludeScanExecFromCollapsedStage.
        *   - Test case where query plan is constructed from simple DataFrames, e.g.
@@ -423,7 +425,7 @@ case class WholeStageTransformer(child: SparkPlan, materializeInput: Boolean = f
        */
       new WholeStageZippedPartitionsRDD(
         sparkContext,
-        inputRDDs,     // columnarInputRDDs
+        inputRDDs, // columnarInputRDDs
         sparkContext.getConf,
         wsCtx,
         pipelineTime,

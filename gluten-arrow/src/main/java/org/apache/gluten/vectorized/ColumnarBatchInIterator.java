@@ -38,9 +38,9 @@ public class ColumnarBatchInIterator {
 
   // For being called by native code.
   public long next() {
-    final ColumnarBatch next = delegated.next();                 // 获取下一个批次
+    final ColumnarBatch next = delegated.next(); // 获取下一个批次
     // OffloadArrowDataExec
-    ColumnarBatches.checkOffloaded(next);                        // 确保ColumnarBatch已经被"卸载"到原生内存
-    return ColumnarBatches.getNativeHandle(backendName, next);   // 获取原生句柄,原生内存中的Arrow数据结构
+    ColumnarBatches.checkOffloaded(next); // 确保ColumnarBatch已经被"卸载"到原生内存
+    return ColumnarBatches.getNativeHandle(backendName, next); // 获取原生句柄,原生内存中的Arrow数据结构
   }
 }

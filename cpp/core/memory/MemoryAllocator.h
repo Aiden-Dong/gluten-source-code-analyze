@@ -27,17 +27,50 @@
 
 namespace gluten {
 
+/***
+ * 定义统一的内存分配接口
+ * 为 Gluten 提供可插拔的内存管理策略
+ */
 class MemoryAllocator {
  public:
   virtual ~MemoryAllocator() = default;
 
+  /***
+   * 分配指定大小的内存块
+   * - size：要分配的字节数
+   * - out：输出参数，成功时存储分配的内存地址指针
+   */
   virtual bool allocate(int64_t size, void** out) = 0;
+
+  /***
+   * 分配内存并初始化为零
+   * • nmemb：元素个数
+   * • size：每个元素的字节数
+   * • out：输出参数，存储分配的内存地址指针
+   */
   virtual bool allocateZeroFilled(int64_t nmemb, int64_t size, void** out) = 0;
+
+  /****
+  * 功能：分配按指定边界对齐的内存
+  * 参数：
+  * • alignment：内存对齐边界（必须是2的幂，如8、16、32、64）
+  * • size：要分配的字节数
+  * • out：输出参数，存储分配的内存地址指针
+  * */
   virtual bool allocateAligned(uint64_t alignment, int64_t size, void** out) = 0;
 
+  /****
+  * 调整已分配内存块的大小
+  * 参数：
+  * • p：原内存块指针
+  * • size：原内存块大小
+  * • newSize：新的内存块大小
+  * • out：输出参数，存储重新分配后的内存地址指针
+  * */
   virtual bool reallocate(void* p, int64_t size, int64_t newSize, void** out) = 0;
   virtual bool reallocateAligned(void* p, uint64_t alignment, int64_t size, int64_t newSize, void** out) = 0;
 
+  // 释放内存
   virtual bool free(void* p, int64_t size) = 0;
 
   virtual int64_t getBytes() const = 0;
@@ -45,7 +78,7 @@ class MemoryAllocator {
   virtual int64_t peakBytes() const = 0;
 };
 
-// The class must be thread safe
+// 包装其他分配器，添加监听功能
 class ListenableMemoryAllocator final : public MemoryAllocator {
  public:
   explicit ListenableMemoryAllocator(MemoryAllocator* delegated, AllocationListener* listener)
@@ -70,12 +103,17 @@ class ListenableMemoryAllocator final : public MemoryAllocator {
 
  private:
   void updateUsage(int64_t size);
-  MemoryAllocator* const delegated_;
-  AllocationListener* const listener_;
-  std::atomic_int64_t usedBytes_{0L};
-  std::atomic_int64_t peakBytes_{0L};
+  MemoryAllocator* const delegated_;      // 指向真正执行内存分配操作的底层分配器
+  AllocationListener* const listener_;    // 接收内存分配变化的通知
+  std::atomic_int64_t usedBytes_{0L};  // 当前使用量
+  std::atomic_int64_t peakBytes_{0L};  // 峰值使用量
 };
 
+/***
+ * • 基于标准 C 库的内存分配实现
+ * • 提供基础的 malloc/free 功能
+ * • 包含使用量统计
+ */
 class StdMemoryAllocator final : public MemoryAllocator {
  public:
   bool allocate(int64_t size, void** out) override;

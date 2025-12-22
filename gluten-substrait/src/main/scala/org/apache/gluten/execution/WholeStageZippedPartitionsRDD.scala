@@ -29,8 +29,8 @@ private[gluten] class ZippedPartitionsPartition(
     val inputColumnarRDDPartitions: Seq[Partition])
   extends Partition {}
 
-/***
- * 是 Gluten 中用于处理**中间阶段**（非叶子节点阶段）的 RDD，它将多个上游 RDD 的分区"拉链式"组合，然后交给原生引擎执行。
+/**
+ * * 是 Gluten 中用于处理**中间阶段**（非叶子节点阶段）的 RDD，它将多个上游 RDD 的分区"拉链式"组合，然后交给原生引擎执行。
  * @param sc
  * @param rdds
  * @param sparkConf
@@ -41,12 +41,12 @@ private[gluten] class ZippedPartitionsPartition(
  */
 class WholeStageZippedPartitionsRDD(
     @transient private val sc: SparkContext,
-    var rdds: ColumnarInputRDDsWrapper,         // 上游RDD包装器
+    var rdds: ColumnarInputRDDsWrapper, // 上游RDD包装器
     sparkConf: SparkConf,
-    resCtx: WholeStageTransformContext,         //  核心处理逻辑上下文
-    pipelineTime: SQLMetric,                    //  性能指标
-    updateNativeMetrics: IMetrics => Unit,      //  指标更新函数
-    materializeInput: Boolean)                  // 是否物化输入
+    resCtx: WholeStageTransformContext, //  核心处理逻辑上下文
+    pipelineTime: SQLMetric, //  性能指标
+    updateNativeMetrics: IMetrics => Unit, //  指标更新函数
+    materializeInput: Boolean) // 是否物化输入
   extends RDD[ColumnarBatch](sc, rdds.getDependencies) {
 
   override def compute(split: Partition, context: TaskContext): Iterator[ColumnarBatch] = {

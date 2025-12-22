@@ -200,9 +200,9 @@ object OffloadOthers {
         // 数据源读取
         case plan: BatchScanExec =>
           logDebug(s"Columnar Processing for ${plan.getClass} is currently supported.")
-          ScanTransformerFactory.createBatchScanTransformer(plan)       // 数据湖常用的类方法
+          ScanTransformerFactory.createBatchScanTransformer(plan) // 数据湖常用的类方法
 
-        case plan: FileSourceScanExec =>                                 // ORC-parquet 可选实现
+        case plan: FileSourceScanExec => // ORC-parquet 可选实现
           logDebug(s"Columnar Processing for ${plan.getClass} is currently supported.")
           ScanTransformerFactory.createFileSourceScanTransformer(plan)
         case plan if HiveTableScanExecTransformer.isHiveTableScan(plan) =>
@@ -214,12 +214,10 @@ object OffloadOthers {
           logDebug(s"Columnar Processing for ${plan.getClass} is currently supported.")
           ColumnarCoalesceExec(plan.numPartitions, plan.child)
 
-
         case plan: FilterExec =>
           logDebug(s"Columnar Processing for ${plan.getClass} is currently supported.")
           BackendsApiManager.getSparkPlanExecApiInstance
             .genFilterExecTransformer(plan.condition, plan.child)
-
 
         case plan: ProjectExec =>
           val columnarChild = plan.child

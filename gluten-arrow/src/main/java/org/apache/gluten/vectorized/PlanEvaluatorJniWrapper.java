@@ -44,8 +44,7 @@ public class PlanEvaluatorJniWrapper implements RuntimeAware {
   public static native void injectWriteFilesTempPath(byte[] path, byte[] fileName);
 
   /**
-   * 计划验证
-   * Validate the Substrait plan in native compute engine.
+   * 计划验证 Validate the Substrait plan in native compute engine.
    *
    * @param subPlan the Substrait plan in binary format.
    * @return whether the computing of this plan is supported in native and related info.
@@ -53,8 +52,7 @@ public class PlanEvaluatorJniWrapper implements RuntimeAware {
   native NativePlanValidationInfo nativeValidateWithFailureReason(byte[] subPlan);
 
   /**
-   * 表达式验证
-   * Validate the expression in native compute engine.
+   * 表达式验证 Validate the expression in native compute engine.
    *
    * @param expression the expression in binary format
    * @return whether the expression is supported in native
@@ -64,8 +62,7 @@ public class PlanEvaluatorJniWrapper implements RuntimeAware {
   public native String nativePlanString(byte[] substraitPlan, Boolean details);
 
   /**
-   * 内核创建
-   * Create a native compute kernel and return a columnar result iterator.
+   * 内核创建 Create a native compute kernel and return a columnar result iterator.
    *
    * @return iterator instance id
    */

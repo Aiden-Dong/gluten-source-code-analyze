@@ -40,7 +40,7 @@ public class NativePlanEvaluator {
   private final PlanEvaluatorJniWrapper jniWrapper;
 
   private NativePlanEvaluator(Runtime runtime) {
-    this.runtime = runtime;    // // 运行时环境
+    this.runtime = runtime; // // 运行时环境
 
     // // 通过 JNI 调用原生代码的包装器
     this.jniWrapper = PlanEvaluatorJniWrapper.create(runtime); // JNI 包装器
@@ -74,23 +74,24 @@ public class NativePlanEvaluator {
   // Used by WholeStageTransform to create the native computing pipeline and
   // return a columnar result iterator.
   public ColumnarBatchOutIterator createKernelWithBatchIterator(
-      byte[] wsPlan,                                 // // Substrait 计划 (序列化)
-      byte[][] splitInfo,                            // // 分片信息
-      List<ColumnarBatchInIterator> iterList,        // // 输入迭代器列表
-      int partitionIndex,                            // // 分区索引
-      String spillDirPath)                           // // 溢出目录路径
+      byte[] wsPlan, // // Substrait 计划 (序列化)
+      byte[][] splitInfo, // // 分片信息
+      List<ColumnarBatchInIterator> iterList, // // 输入迭代器列表
+      int partitionIndex, // // 分区索引
+      String spillDirPath) // // 溢出目录路径
       throws RuntimeException {
 
     // 1. 通过 JNI 创建原生内核
-    final long itrHandle = jniWrapper.nativeCreateKernelWithIterator(
-            wsPlan,                                             // // Substrait 计划字节数组
-            splitInfo,                                          // // 分片信息
-            iterList.toArray(new ColumnarBatchInIterator[0]),   // // 输入迭代器数组
-            TaskContext.get().stageId(),                        // // Spark Stage ID
+    final long itrHandle =
+        jniWrapper.nativeCreateKernelWithIterator(
+            wsPlan, // // Substrait 计划字节数组
+            splitInfo, // // 分片信息
+            iterList.toArray(new ColumnarBatchInIterator[0]), // // 输入迭代器数组
+            TaskContext.get().stageId(), // // Spark Stage ID
             partitionIndex, // TaskContext.getPartitionId(),    // // 分区索引
-            TaskContext.get().taskAttemptId(),                  // // 任务尝试 ID
-            DebugUtil.isDumpingEnabledForTask(),                // // 是否启用调试转储
-            spillDirPath);                                      // // 溢出目录
+            TaskContext.get().taskAttemptId(), // // 任务尝试 ID
+            DebugUtil.isDumpingEnabledForTask(), // // 是否启用调试转储
+            spillDirPath); // // 溢出目录
 
     // 输出迭代器创建
     final ColumnarBatchOutIterator out = createOutIterator(runtime, itrHandle);

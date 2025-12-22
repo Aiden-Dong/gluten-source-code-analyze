@@ -25,7 +25,11 @@ namespace gluten {
 
 using ArrowMemoryPoolReleaser = std::function<void(arrow::MemoryPool*)>;
 
-/// This pool was not tracked by Spark, should only used in test.
+// • 实现 arrow::MemoryPool 接口，为 Arrow 库提供统一的内存管理
+// • 将 Arrow 的内存分配请求桥接到 Gluten 的内存管理系统。
+// • **桥接层**：连接 Arrow C++ 库和 Gluten 内存管理系统
+// • **统一管理**：确保 Arrow 数据结构的内存分配也受 Gluten 内存策略控制
+// • **监控集成**：Arrow 的内存使用纳入整体内存监控体系
 class ArrowMemoryPool final : public arrow::MemoryPool {
  public:
   explicit ArrowMemoryPool(AllocationListener* listener, ArrowMemoryPoolReleaser releaser = nullptr)

@@ -32,6 +32,7 @@
 
 static jint jniVersion = JNI_VERSION_1_8;
 
+// JavaString 转成  c++ string
 static inline std::string jStringToCString(JNIEnv* env, jstring string) {
   if (!string) {
     return {};
@@ -43,11 +44,14 @@ static inline std::string jStringToCString(JNIEnv* env, jstring string) {
     throw gluten::GlutenException("Error occurred during GetStringUTFChars. Probably OOM.");
   }
 
-  std::string result(chars);
+  std::string result(chars);    // 封装成栈对象
   env->ReleaseStringUTFChars(string, chars);
   return result;
 }
 
+
+// 检查并转换Java异常
+// 统一的异常处理机制
 static inline void checkException(JNIEnv* env) {
   if (env->ExceptionCheck()) {
     jthrowable t = env->ExceptionOccurred();
@@ -77,6 +81,7 @@ static inline void checkException(JNIEnv* env) {
   }
 }
 
+// 创建全局类引用
 static inline jclass createGlobalClassReference(JNIEnv* env, const char* className) {
   jclass localClass = env->FindClass(className);
   jclass globalClass = (jclass)env->NewGlobalRef(localClass);
@@ -93,6 +98,7 @@ static inline jclass createGlobalClassReferenceOrError(JNIEnv* env, const char* 
   return globalClass;
 }
 
+// 获取方法ID
 static inline jmethodID getMethodId(JNIEnv* env, jclass thisClass, const char* name, const char* sig) {
   jmethodID ret = env->GetMethodID(thisClass, name, sig);
   return ret;
@@ -106,6 +112,7 @@ static inline jmethodID getMethodIdOrError(JNIEnv* env, jclass thisClass, const 
   }
   return ret;
 }
+
 
 static inline jmethodID getStaticMethodId(JNIEnv* env, jclass thisClass, const char* name, const char* sig) {
   jmethodID ret = env->GetStaticMethodID(thisClass, name, sig);
@@ -122,6 +129,7 @@ static inline jmethodID getStaticMethodIdOrError(JNIEnv* env, jclass thisClass, 
   return ret;
 }
 
+// 线程附加到JVM
 static inline void attachCurrentThreadAsDaemonOrThrow(JavaVM* vm, JNIEnv** out) {
   int getEnvStat = vm->GetEnv(reinterpret_cast<void**>(out), jniVersion);
   if (getEnvStat == JNI_EDETACHED) {
@@ -145,8 +153,11 @@ static T* jniCastOrThrow(jlong handle) {
   GLUTEN_CHECK(instance != nullptr, "FATAL: resource instance should not be null.");
   return instance;
 }
+
+
 namespace gluten {
 
+// 全局JNI状态管理
 class JniCommonState {
  public:
   virtual ~JniCommonState() = default;
@@ -193,6 +204,7 @@ enum class JniPrimitiveArrayType {
   kDouble = 7
 };
 
+// 处理Java 不同数据类型的数组读取方式
 #define CONCATENATE(t1, t2, t3) t1##t2##t3
 
 #define DEFINE_PRIMITIVE_ARRAY(PRIM_TYPE, JAVA_TYPE, JNI_NATIVE_TYPE, NATIVE_TYPE, METHOD_VAR) \

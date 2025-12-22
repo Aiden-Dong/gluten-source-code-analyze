@@ -28,7 +28,7 @@ import org.apache.spark.sql.catalyst.analysis.UnresolvedException
 /**
  * Gluten 查询计划的基础接口，同时开放验证调用。
  *
-   * 自 https://github.com/apache/incubator-gluten/pull/2185 起。
+ * 自 https://github.com/apache/incubator-gluten/pull/2185 起。
  */
 trait ValidatablePlan extends GlutenPlan with LogLevelUtil {
   protected def glutenConf: GlutenConfig = GlutenConfig.get
@@ -64,9 +64,7 @@ trait ValidatablePlan extends GlutenPlan with LogLevelUtil {
     }
   }
 
-  /**
-   * 验证此 SparkPlan 是否支持在本地代码中转换为 substrait 节点。
-   */
+  /** 验证此 SparkPlan 是否支持在本地代码中转换为 substrait 节点。 */
   final def doValidate(): ValidationResult = {
     val schemaValidationResult =
       try {

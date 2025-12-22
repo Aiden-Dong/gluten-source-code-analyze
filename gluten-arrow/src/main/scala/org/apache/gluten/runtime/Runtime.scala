@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.JavaConverters._ // for 2.12
 
 trait Runtime {
-  def memoryManager(): NativeMemoryManager   // // 原生内存管理器
-  def getHandle(): Long                      // // 运行时句柄
+  def memoryManager(): NativeMemoryManager // // 原生内存管理器
+  def getHandle(): Long // // 运行时句柄
 }
 
 object Runtime {
