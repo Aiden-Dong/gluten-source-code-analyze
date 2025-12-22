@@ -62,8 +62,9 @@ VeloxRuntime::VeloxRuntime(
     const std::unordered_map<std::string, std::string>& confMap)
     : Runtime(kind, vmm, confMap) {
   // Refresh session config.
-  veloxCfg_ =
-      std::make_shared<facebook::velox::config::ConfigBase>(std::unordered_map<std::string, std::string>(confMap_));
+
+  // velox 配置
+  veloxCfg_ = std::make_shared<facebook::velox::config::ConfigBase>(std::unordered_map<std::string, std::string>(confMap_));
   debugModeEnabled_ = veloxCfg_->get<bool>(kDebugModeEnabled, false);
   FLAGS_minloglevel = veloxCfg_->get<uint32_t>(kGlogSeverityLevel, FLAGS_minloglevel);
   FLAGS_v = veloxCfg_->get<uint32_t>(kGlogVerboseLevel, FLAGS_v);
@@ -79,6 +80,7 @@ VeloxRuntime::VeloxRuntime(
 void VeloxRuntime::parsePlan(const uint8_t* data, int32_t size) {
   if (debugModeEnabled_ || dumper_ != nullptr) {
     try {
+      // 将计划树二进制数据转为 json 字符串
       auto planJson = substraitFromPbToJson("Plan", data, size);
       if (dumper_ != nullptr) {
         dumper_->dumpPlan(planJson);
@@ -153,6 +155,7 @@ VeloxMemoryManager* VeloxRuntime::memoryManager() {
 std::shared_ptr<ResultIterator> VeloxRuntime::createResultIterator(
     const std::string& spillDir,
     const std::vector<std::shared_ptr<ResultIterator>>& inputs) {
+
   LOG_IF(INFO, debugModeEnabled_) << "VeloxRuntime session config:" << printConfig(confMap_);
 
   VeloxPlanConverter veloxPlanConverter(
@@ -161,7 +164,11 @@ std::shared_ptr<ResultIterator> VeloxRuntime::createResultIterator(
       veloxCfg_.get(),
       *localWriteFilesTempPath(),
       *localWriteFileName());
+
+
+  // 将 SubstriptPlan 转成 VeloxPlan
   veloxPlan_ = veloxPlanConverter.toVeloxPlan(substraitPlan_, std::move(localFiles_));
+
   LOG_IF(INFO, debugModeEnabled_ && taskInfo_.has_value())
       << "############### Velox plan for task " << taskInfo_.value() << " ###############" << std::endl
       << veloxPlan_->toString(true, true);

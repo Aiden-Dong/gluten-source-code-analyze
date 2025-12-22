@@ -267,7 +267,7 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
   std::unique_ptr<ObjectStore> objStore_ = ObjectStore::create();
   std::unordered_map<std::string, std::string> confMap_; // Session conf map
 
-  ::substrait::Plan substraitPlan_;
+  ::substrait::Plan substraitPlan_;                         // 计划树-- 本质上就是一个ProtoBuf
   std::vector<::substrait::ReadRel_LocalFiles> localFiles_;
 
   std::optional<SparkTaskInfo> taskInfo_{std::nullopt};

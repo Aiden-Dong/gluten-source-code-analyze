@@ -48,19 +48,51 @@ class VeloxRuntime final : public Runtime {
     taskInfo_ = taskInfo;
   }
 
+  /***
+   * 解析执行计划
+   * • **协议解析**：将 Protobuf 格式的 Substrait 计划解析为内部结构
+   * • **调试输出**：在调试模式下输出计划的 JSON 表示
+   * • **计划存储**：解析后存储在 substraitPlan_ 中（继承自父类）
+   **/
   void parsePlan(const uint8_t* data, int32_t size) override;
 
   void parseSplitInfo(const uint8_t* data, int32_t size, int32_t splitIndex) override;
 
+  /***
+   * 获取内存管理器
+   * • **内存访问**：返回 VeloxMemoryManager 实例
+   * • **类型转换**：将父类的 MemoryManager 转换为 VeloxMemoryManager
+   * • **内存统一**：提供统一的内存管理接口
+   */
   VeloxMemoryManager* memoryManager() override;
 
   // FIXME This is not thread-safe?
+
+  /***
+   * 创建结果迭代器
+   * • **核心执行**：创建 WholeStageResultIterator 执行 Velox 计划
+   * • **计划转换**：将 Substrait 计划转换为 Velox 计划
+   * • **任务创建**：基于计划和分片信息创建 Velox Task
+   * • **结果封装**：返回可迭代的结果接口
+   **/
   std::shared_ptr<ResultIterator> createResultIterator(
       const std::string& spillDir,
       const std::vector<std::shared_ptr<ResultIterator>>& inputs = {}) override;
 
+  /****
+   * 创建列转行转换器
+   * • **格式转换**：创建 VeloxColumnarToRowConverter
+   * • **内存控制**：设置转换过程的内存阈值
+   * • **Fallback 支持**：支持回退到 Spark 行式处理
+   */
   std::shared_ptr<ColumnarToRowConverter> createColumnar2RowConverter(int64_t column2RowMemThreshold) override;
 
+  /****
+   * 创建空模式批次
+   * • **缓存查找**：先从 emptySchemaBatchLoopUp_ 查找
+   * • **按需创建**：不存在时创建新的空模式批次
+   * • **性能优化**：避免重复创建相同的空批次
+   */
   std::shared_ptr<ColumnarBatch> createOrGetEmptySchemaBatch(int32_t numRows) override;
 
   std::shared_ptr<ColumnarBatch> select(std::shared_ptr<ColumnarBatch> batch, const std::vector<int32_t>& columnIndices)
@@ -117,11 +149,10 @@ class VeloxRuntime final : public Runtime {
       std::vector<facebook::velox::core::PlanNodeId>& streamIds);
 
  private:
-  std::shared_ptr<const facebook::velox::core::PlanNode> veloxPlan_;
-  std::shared_ptr<facebook::velox::config::ConfigBase> veloxCfg_;
-  bool debugModeEnabled_{false};
-
-  std::unordered_map<int32_t, std::shared_ptr<VeloxColumnarBatch>> emptySchemaBatchLoopUp_;
+  std::shared_ptr<const facebook::velox::core::PlanNode> veloxPlan_;     // Velox 执行计划
+  std::shared_ptr<facebook::velox::config::ConfigBase> veloxCfg_;        // 存储 Velox 引擎的所有配置参数
+  bool debugModeEnabled_{false};                                         // 调试模式标志
+  std::unordered_map<int32_t, std::shared_ptr<VeloxColumnarBatch>> emptySchemaBatchLoopUp_;  // 空模式批次缓存
 };
 
 } // namespace gluten

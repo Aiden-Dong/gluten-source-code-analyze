@@ -63,6 +63,7 @@ std::string substraitFromJsonToPb(std::string_view typeName, std::string_view js
   return out;
 }
 
+// 将 Substrait Protobuf 二进制数据转换为 JSON 字符串格式
 std::string substraitFromPbToJson(std::string_view typeName, const uint8_t* data, int32_t size) {
   std::string typeUrl = "/substrait." + std::string(typeName);
 
