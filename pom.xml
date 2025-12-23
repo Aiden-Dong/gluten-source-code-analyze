@@ -33,7 +33,6 @@
     <module>shims</module>
     <module>gluten-ui</module>
     <module>package</module>
-
     <module>gluten-ras</module>
     <module>gluten-arrow</module>
     <module>backends-velox</module>
