@@ -244,6 +244,7 @@ VeloxMemoryManager::VeloxMemoryManager(
   mmOptions.extraArbitratorConfigs = getExtraArbitratorConfigs(backendConf);
   veloxMemoryManager_ = std::make_unique<velox::memory::MemoryManager>(mmOptions);
 
+  // velox 内存资源池
   veloxAggregatePool_ = veloxMemoryManager_->addRootPool(
       "root",
       velox::memory::kMaxMemory, // the 3rd capacity

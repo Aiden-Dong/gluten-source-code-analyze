@@ -182,22 +182,23 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
     gluten PRIVATE -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/symbols.map)
 endif()
 
-#if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-#  execute_process(
-#    COMMAND ${CMAKE_C_COMPILER} -print-file-name=libstdc++fs.a
-#    RESULT_VARIABLE LIBSTDCXXFS_STATIC_RESULT
-#    OUTPUT_VARIABLE LIBSTDCXXFS_STATIC_PATH
-#    OUTPUT_STRIP_TRAILING_WHITESPACE)
-#  if(LIBSTDCXXFS_STATIC_RESULT EQUAL 0 AND EXISTS "${LIBSTDCXXFS_STATIC_PATH}")
-#    message(STATUS "libstdc++fs.a found at: ${LIBSTDCXXFS_STATIC_PATH}")
-#    target_link_libraries(gluten PRIVATE ${LIBSTDCXXFS_STATIC_PATH})
-#  else()
-#    find_library(LIBSTDCXXFS stdc++fs REQUIRED)
-#    target_link_libraries(gluten PUBLIC ${LIBSTDCXXFS})
-#  endif()
-#endif()
+if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+  execute_process(
+    COMMAND ${CMAKE_C_COMPILER} -print-file-name=libstdc++fs.a
+    RESULT_VARIABLE LIBSTDCXXFS_STATIC_RESULT
+    OUTPUT_VARIABLE LIBSTDCXXFS_STATIC_PATH
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(LIBSTDCXXFS_STATIC_RESULT EQUAL 0 AND EXISTS "${LIBSTDCXXFS_STATIC_PATH}")
+    message(STATUS "libstdc++fs.a found at: ${LIBSTDCXXFS_STATIC_PATH}")
+    target_link_libraries(gluten PRIVATE ${LIBSTDCXXFS_STATIC_PATH})
+  else()
+    find_library(LIBSTDCXXFS stdc++fs REQUIRED)
+    target_link_libraries(gluten PUBLIC ${LIBSTDCXXFS})
+  endif()
+endif()
 
-#find_package(arrow REQUIRED)
+set(lz4_DIR "/opt/homebrew/Cellar/lz4/1.10.0")
+find_package(arrow REQUIRED)
 include(ConfigArrow)
 FIND_ARROW_LIB(${ARROW_LIB_NAME})
 FIND_ARROW_LIB(${ARROW_BUNDLED_DEPS})

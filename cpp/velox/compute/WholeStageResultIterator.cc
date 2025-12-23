@@ -65,82 +65,104 @@ const std::string kHiveDefaultPartition = "__HIVE_DEFAULT_PARTITION__";
 } // namespace
 
 WholeStageResultIterator::WholeStageResultIterator(
-    VeloxMemoryManager* memoryManager,
-    const std::shared_ptr<const facebook::velox::core::PlanNode>& planNode,
-    const std::vector<facebook::velox::core::PlanNodeId>& scanNodeIds,
-    const std::vector<std::shared_ptr<SplitInfo>>& scanInfos,
-    const std::vector<facebook::velox::core::PlanNodeId>& streamIds,
-    const std::string spillDir,
-    const facebook::velox::config::ConfigBase* veloxCfg,
-    const SparkTaskInfo& taskInfo)
+    VeloxMemoryManager* memoryManager,                                                // 内存管理器指针
+    const std::shared_ptr<const facebook::velox::core::PlanNode>& planNode,           // Velox执行计划
+    const std::vector<facebook::velox::core::PlanNodeId>& scanNodeIds,                // 扫描节点ID列表
+    const std::vector<std::shared_ptr<SplitInfo>>& scanInfos,                         // 数据分片信息
+    const std::vector<facebook::velox::core::PlanNodeId>& streamIds,                  // 流节点ID列表
+    const std::string spillDir,                                                       // 溢出目录路径
+    const facebook::velox::config::ConfigBase* veloxCfg,                              // Velox配置
+    const SparkTaskInfo& taskInfo)                                                    // Spark任务信息
     : memoryManager_(memoryManager),
       veloxCfg_(veloxCfg),
 #ifdef GLUTEN_ENABLE_GPU
-      enableCudf_(veloxCfg_->get<bool>(kCudfEnabled, kCudfEnabledDefault)),
+      enableCudf_(veloxCfg_->get<bool>(kCudfEnabled, kCudfEnabledDefault)),           // GPU支持标志
 #endif
       taskInfo_(taskInfo),
       veloxPlan_(planNode),
       scanNodeIds_(scanNodeIds),
       scanInfos_(scanInfos),
       streamIds_(streamIds) {
+  // 从配置中获取溢出策略，默认值为 kSpillStrategyDefaultValue
   spillStrategy_ = veloxCfg_->get<std::string>(kSpillStrategy, kSpillStrategyDefaultValue);
+
+  // 获取溢出线程数配置
   auto spillThreadNum = veloxCfg_->get<uint32_t>(kSpillThreadNum, kSpillThreadNumDefaultValue);
+  // 如果配置了溢出线程数 > 0，创建CPU线程池执行器用于异步溢出
   if (spillThreadNum > 0) {
     spillExecutor_ = std::make_shared<folly::CPUThreadPoolExecutor>(spillThreadNum);
   }
+
+  // 遍历执行计划，按拓扑顺序获取所有节点ID，用于后续指标收集
   getOrderedNodeIds(veloxPlan_, orderedNodeIds_);
 
+  //  根据溢出目录路径获取对应的文件系统（可能是本地FS、HDFS、S3等
   auto fileSystem = velox::filesystems::getFileSystem(spillDir, nullptr);
   GLUTEN_CHECK(fileSystem != nullptr, "File System for spilling is null!");
-  fileSystem->mkdir(spillDir);
+  fileSystem->mkdir(spillDir);  // 创建溢出目录（如果不存在)
+
+  // 配置溢出磁盘选项：路径、已创建标志、创建回调
   velox::common::SpillDiskOptions spillOpts{
       .spillDirPath = spillDir, .spillDirCreated = true, .spillDirCreateCb = nullptr};
 
-  // Create task instance.
+  //////    Velox Task创建              /////
+
+  // 创建空的节点ID集合
   std::unordered_set<velox::core::PlanNodeId> emptySet;
+  // 创建计划片段：执行计划、非分组策略、1个分区、空依赖集合
   velox::core::PlanFragment planFragment{planNode, velox::core::ExecutionStrategy::kUngrouped, 1, emptySet};
+  // 创建新的Velox查询上下文（包含内存池、配置等）
   std::shared_ptr<velox::core::QueryCtx> queryCtx = createNewVeloxQueryCtx();
+
+  // 构建 velox 任务执行流程
   task_ = velox::exec::Task::create(
-      fmt::format(
-          "Gluten_Stage_{}_TID_{}_VTID_{}",
-          std::to_string(taskInfo_.stageId),
-          std::to_string(taskInfo_.taskId),
-          std::to_string(taskInfo.vId)),
-      std::move(planFragment),
-      0,
-      std::move(queryCtx),
-      velox::exec::Task::ExecutionMode::kSerial,
-      /*consumer=*/velox::exec::Consumer{},
-      /*memoryArbitrationPriority=*/0,
-      /*spillDiskOpts=*/spillOpts,
-      /*onError=*/nullptr);
+      fmt::format("Gluten_Stage_{}_TID_{}_VTID_{}",std::to_string(taskInfo_.stageId),std::to_string(taskInfo_.taskId),std::to_string(taskInfo.vId)),             // 任务名称格式化
+      std::move(planFragment),                   // 移动计划片段
+      0,                                             // 目标分区ID
+      std::move(queryCtx),                       // 移动查询上下文
+      velox::exec::Task::ExecutionMode::kSerial,     // 串行执行模式
+      /*consumer=*/velox::exec::Consumer{},          // 空消费
+      /*memoryArbitrationPriority=*/0,               // 内存仲裁优先级
+      /*spillDiskOpts=*/spillOpts,                // 溢出选项
+      /*onError=*/nullptr);                       // 错误回调
+
+
+  // 验证任务是否支持串行执行模式，不支持则抛出异常
   if (!task_->supportSerialExecutionMode()) {
     throw std::runtime_error("Task doesn't support single threaded execution: " + planNode->toString());
   }
 
-  // Generate splits for all scan nodes.
+  // 为分片向量预分配空间，避免动态扩容.
   splits_.reserve(scanInfos.size());
   if (scanNodeIds.size() != scanInfos.size()) {
     throw std::runtime_error("Invalid scan information.");
   }
 
+  // 遍历所有的分片信息
   for (const auto& scanInfo : scanInfos) {
     // Get the information for TableScan.
     // Partition index in scan info is not used.
-    const auto& paths = scanInfo->paths;
-    const auto& starts = scanInfo->starts;
-    const auto& lengths = scanInfo->lengths;
-    const auto& properties = scanInfo->properties;
-    const auto& format = scanInfo->format;
-    const auto& partitionColumns = scanInfo->partitionColumns;
-    const auto& metadataColumns = scanInfo->metadataColumns;
+    const auto& paths = scanInfo->paths;                                            // 文件路径列表
+    const auto& starts = scanInfo->starts;                                       // 文件读取起始位置
+    const auto& lengths = scanInfo->lengths;                                     // 文件读取长度
+    const auto& properties = scanInfo->properties;                     // 文件属性（大小、修改时间等
+    const auto& format = scanInfo->format;                                                            // 文件格式 (ORC/Parquet)等
+    const auto& partitionColumns = scanInfo->partitionColumns;    // 分区列信息
+    const auto& metadataColumns = scanInfo->metadataColumns;      // 元数据列信息
+
 #ifdef GLUTEN_ENABLE_GPU
     // Under the pre-condition that all the split infos has same partition column and format.
-    const auto canUseCudfConnector = scanInfo->canUseCudfConnector();
+    const auto canUseCudfConnector = scanInfo->canUseCudfConnector();                                 // 是否可使用CUDF连接器
 #endif
+
+    // 为每个扫描信息创建连接器分片向量，预分配空间
     std::vector<std::shared_ptr<velox::connector::ConnectorSplit>> connectorSplits;
-    connectorSplits.reserve(paths.size());
+    connectorSplits.reserve(paths.size());      // 预分配空间
+
+    // // 📝 为每个文件构建分区键映射
     for (int idx = 0; idx < paths.size(); idx++) {
+
+      // 当前 schema 信息
       auto metadataColumn = metadataColumns[idx];
       std::unordered_map<std::string, std::optional<std::string>> partitionKeys;
       if (!partitionColumns.empty()) {
@@ -149,6 +171,7 @@ WholeStageResultIterator::WholeStageResultIterator(
       }
 
       std::shared_ptr<velox::connector::ConnectorSplit> split;
+      // iceberg split 处理
       if (auto icebergSplitInfo = std::dynamic_pointer_cast<IcebergSplitInfo>(scanInfo)) {
         // Set Iceberg split.
         std::unordered_map<std::string, std::string> customSplitInfo{{"table_format", "hive-iceberg"}};
@@ -168,6 +191,9 @@ WholeStageResultIterator::WholeStageResultIterator(
             std::unordered_map<std::string, std::string>(),
             properties[idx]);
       } else {
+
+        // Hive Split 处理
+
         auto connectorId = kHiveConnectorId;
 #ifdef GLUTEN_ENABLE_GPU
         if (canUseCudfConnector && enableCudf_ &&
@@ -207,15 +233,21 @@ WholeStageResultIterator::WholeStageResultIterator(
   }
 }
 
+// 创建  Velox 查询上下文
 std::shared_ptr<velox::core::QueryCtx> WholeStageResultIterator::createNewVeloxQueryCtx() {
+
+  // connector 配置信息
   std::unordered_map<std::string, std::shared_ptr<velox::config::ConfigBase>> connectorConfigs;
   connectorConfigs[kHiveConnectorId] = createConnectorConfig();
+
+
+  // Query Context 能力创建
   std::shared_ptr<velox::core::QueryCtx> ctx = velox::core::QueryCtx::create(
       nullptr,
-      facebook::velox::core::QueryConfig{getQueryContextConf()},
-      connectorConfigs,
+      facebook::velox::core::QueryConfig{getQueryContextConf()},         // Query Context 配置信息
+      connectorConfigs,                                                      // Connector 配置信息
       gluten::VeloxBackend::get()->getAsyncDataCache(),
-      memoryManager_->getAggregateMemoryPool(),
+      memoryManager_->getAggregateMemoryPool(),                                 // 获取聚合内存资源池
       spillExecutor_.get(),
       fmt::format(
           "Gluten_Stage_{}_TID_{}_VTID_{}",
@@ -225,30 +257,48 @@ std::shared_ptr<velox::core::QueryCtx> WholeStageResultIterator::createNewVeloxQ
   return ctx;
 }
 
+// 执行整个Stage的计算
 std::shared_ptr<ColumnarBatch> WholeStageResultIterator::next() {
-  tryAddSplitsToTask();
+  // // 步骤1: 尝试将分片添加到Velox任务
+  // // 这是懒加载机制，只在需要时才添加分片，避免一次性加载所有数据
+  tryAddSplitsToTask();         // 添加 Scan Split 计划
+
+  //  步骤2: 检查任务是否已完成
+  // 如果所有数据都已处理完毕，返回nullptr表示迭代结束
   if (task_->isFinished()) {
     return nullptr;
   }
+  // 步骤3: 从Velox任务获取下一个数据向量s
   velox::RowVectorPtr vector;
   while (true) {
+    // 创建一个空的Future对象，用于异步操作控制
     auto future = velox::ContinueFuture::makeEmpty();
+    // // 调用Velox任务的next方法获取数据
+    // future参数用于异步控制：如果数据未准备好，future会被设置
     auto out = task_->next(&future);
+
+    // // 检查是否需要等待
     if (!future.valid()) {
       // Not need to wait. Break.
+      // // future无效表示数据已准备好，无需等待
       vector = std::move(out);
       break;
     }
-    // Velox suggested to wait. This might be because another thread (e.g., background io thread) is spilling the task.
+    // 如果到这里，说明Velox建议等待（通常是因为后台线程在溢出数据）
     GLUTEN_CHECK(out == nullptr, "Expected to wait but still got non-null output from Velox task");
     VLOG(2) << "Velox task " << task_->taskId()
             << " is busy when ::next() is called. Will wait and try again. Task state: "
             << taskStateString(task_->state());
+    // 阻塞等待直到操作完成（如溢出完成）
     future.wait();
+    // 等待完成后继续循环，重新尝试获取数据
   }
+
+  // // 步骤4: 处理空结果情况
   if (vector == nullptr) {
-    return nullptr;
+    return nullptr;   // 没有更多数据
   }
+
   uint64_t numRows = vector->size();
   if (numRows == 0) {
     return nullptr;
@@ -261,6 +311,7 @@ std::shared_ptr<ColumnarBatch> WholeStageResultIterator::next() {
     }
   }
 
+  // 步骤6: 包装并返回结果
   return std::make_shared<VeloxColumnarBatch>(vector);
 }
 
